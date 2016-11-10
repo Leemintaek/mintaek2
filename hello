@@ -1,0 +1,85 @@
+package com.divememory.controller;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.AbstractApplicationContext;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.context.support.WebApplicationContextUtils;
+
+import com.divememory.common.ResultMap;
+import com.divememory.common.Session;
+import com.divememory.dto.command.NewsletterCommand;
+import com.divememory.service.NewsletterService;
+
+@Controller
+public class NewsletterController extends BaseController 
+{
+	@Autowired private NewsletterService newsletterService;
+	@Autowired private ApplicationContext context;
+	
+	@RequestMapping(value="/newsletter/list.dive", method=RequestMethod.GET)
+	@ResponseBody
+	public ResultMap getList(HttpSession session)
+	{
+		if(!Session.isAdminLogin(session))
+			return Session.ErrorResultMap(context);
+		
+		return newsletterService.getList(Session.getAdminId(session));
+	}
+	
+	@RequestMapping(value="/newsletter/detail.dive", method=RequestMethod.GET)
+	@ResponseBody
+	public ResultMap getDetail(
+			HttpSession session,
+			@RequestParam(value="id", required=true) int id)
+	{
+		if(!Session.isAdminLogin(session))
+			return Session.ErrorResultMap(context);
+		
+		return newsletterService.getDetail(Session.getAdminId(session), id);
+	}
+	
+	@RequestMapping(value="/newsletter/write.dive", method=RequestMethod.POST)
+	@ResponseBody
+	public ResultMap write(
+			HttpServletRequest request,
+			NewsletterCommand command)
+	{
+		if(!Session.isAdminLogin(request))
+			return Session.ErrorResultMap(context);		
+		
+		return newsletterService.write(Session.getAdminId(request), command);				
+	}	
+	
+	@RequestMapping(value="/newsletter/modify.dive", method=RequestMethod.POST)
+	@ResponseBody
+	public ResultMap modify(
+			HttpServletRequest request,
+			NewsletterCommand command,
+			@RequestParam(value="id", required=true) int id)
+	{
+		if(!Session.isAdminLogin(request))
+			return Session.ErrorResultMap(context);	
+		
+		return newsletterService.modify(Session.getAdminId(request), id, command);				
+	}
+	
+	@RequestMapping(value="/newsletter/send.dive", method=RequestMethod.GET)
+	@ResponseBody
+	public ResultMap send(
+			HttpServletRequest request,			
+			@RequestParam(value="id", required=true) int id)
+	{
+		if(!Session.isAdminLogin(request))
+			return Session.ErrorResultMap(context);		
+		
+		return newsletterService.send(Session.getAdminId(request), (AbstractApplicationContext)WebApplicationContextUtils.getWebApplicationContext(request.getServletContext()), id);					
+	}
+}
