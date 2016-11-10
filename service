@@ -1,0 +1,17 @@
+package com.divememory.service;
+
+import org.springframework.context.support.AbstractApplicationContext;
+
+import com.divememory.common.ResultMap;
+import com.divememory.dto.command.NewsletterCommand;
+
+public interface NewsletterService 
+{
+	public ResultMap getList(String adminId);
+	public ResultMap getDetail(String adminId, int id);
+	
+	public ResultMap write(String adminId, NewsletterCommand command);
+	public ResultMap modify(String adminId, int id, NewsletterCommand command);
+		
+	public ResultMap send(String adminId, AbstractApplicationContext context, int id);	
+}
