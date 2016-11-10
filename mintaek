@@ -1,0 +1,294 @@
+#mintaek2
+
+////////////////////////////////////////////////////////////////////////////////////////////
+/// Attributes
+////////////////////////////////////////////////////////////////////////////////////////////
+
+
+////////////////////////////////////////////////////////////////////////////////////////////
+/// Operations
+////////////////////////////////////////////////////////////////////////////////////////////
+
+function initNewsletterHome() {
+	setTitle("뉴스레터", true);
+	resetContent("newsletter_content");	
+	
+	var view = '';
+	
+	view += '<div class="edit_wrap"></div>';
+	view += '<div class="list_section"></div>';
+	
+	$("#content").append(view);
+	
+	setNewsletterEditView($("#content .edit_wrap"), "write", null);
+	
+	requestNewsletterList();	
+}
+
+function refreshNewsletterListView() {
+	$("form[name=newsletter_write_form]").each(function() {
+		this.reset();
+	});
+	
+	requestNewsletterList();
+}
+
+function setNewsletterListView(newsletters) {
+	var view = '';
+	var extra = '';
+	
+	$(newsletters).each(function(index, newsletter) {
+		view += '<div class="item">';
+		view += 	'<div class="item_body">';
+		view += 		'<a class="announcement_item" href="' + newsletter.id + '">';
+		view +=			'<div class="substance_newsletter menu">' + newsletter.overview + '</div>';
+		view +=			'<div class="menu devide33_mobile">' + announcement.target + '</div>';
+		view +=			'<div class="menu devide33_mobile">' + announcement.status + '</div>';		
+		view +=			extra;
+		view +=		'</a>';
+		view +=	'</div>';
+		view += '</div>';
+	});	
+		
+	$("#content .list_section").empty();
+	$("#content .list_section").append(view);
+}
+
+function setNewsletterEditView(target, type, data) {	
+	var formName = '';
+	var uploadName = '';
+	var submitBtn = '';
+	var appendix = '';
+	
+	var id = '-1';
+	
+	if(type == "write") {
+		formName = "newsletter_write_form";		
+		submitBtn = '올리기';
+	}		
+	else {
+		formName = "newsletter_modify_form";
+		submitBtn = '수정하기';
+		id = data.id;
+		
+		appendix += '<div class="overflow">';
+		appendix += 	'<span class="devide5_mobile">작성자 : ' + data.writerId + '</span>';		
+		appendix +=		'<span class="devide5_mobile" title="' + data.writtenDateTime + '">작성일 : ' + data.writtenDateTime + '</span>';		
+		appendix +=		'<span class="devide5_mobile">수정자 : ' + data.lastModifierId + '</span>';
+		appendix +=		'<span class="devide5_mobile" title="' + data.lastModifiedDateTime + '">수정일 : ' + data.lastModifiedDateTime + '</span>';
+		appendix +=		'<span class="devide5_mobile">발송자 : ' + data.senderId + '</span>';
+		appendix +=		'<span class="devide5_mobile" title="' + data.writtenDateTime + '">발송일 : ' + data.sentDateTime + '</span>';
+		appendix +=	 '</div>';
+	}
+	
+	var view = '';
+	
+	view += '<form name="' + formName + '" data-id="' + id + '">';
+	view += 	appendix;
+	view += 	'<input type="text" name="overview" placeholder="개요를 입력하세요"/>';
+	view += 	'<input type="text" name="subject" placeholder="제목을 입력하세요"/>';
+	view += 	'<textarea name="body" placeholder="본문을 입력하세요"></textarea>';
+	view +=	'<div class="overflow">';
+	view += 		'<div class="select_double">';
+	view += 			'<select name="target">';
+	view += 				'<option value="">대상국가</option>';
+	view += 				'<option value="ko">한국어</option>';
+	view += 				'<option value="en">영어</option>';
+	view += 				'<option value="ja">일본어</option>';
+	view += 				'<option value="zh">중국어</option>';
+	view += 				'<option value="en,ja">영어/일본어</option>';
+	view +=				'<option value="en,zh">영어/중국어</option>';
+	view += 				'<option value="en,ja,zh">영어/일본어/중국어</option>';
+	view += 			'</select>';
+	view += 		'</div>';
+	view += 		'<div class="picture_right">';								
+	view += 			'<div class="table_right_picture">';
+	view += 				'<input type="submit" class="ok" value="' + submitBtn + '"/>';
+	view += 			'</div>';
+	view +=			'<div class="table_right_picture">';
+	view +=				'<input type="button" class="ok" value="미리보기">';
+	view +=			'</div>';
+	view += 		'</div>';
+	view +=	'</div>';							
+	view += '</form>';	
+	
+	if(type == "modify") {
+		$(".list_section .edit_wrap").prev().removeClass("bold");
+		$(".list_section .edit_wrap").remove();
+		
+		view = '<div class="edit_wrap">' + view + '</div>';
+	}		
+	
+	target.append(view);
+	
+	if(type == "write")
+		return;
+	
+	// modify...
+	target.find(".item_body").addClass("bold");
+	
+	target.find("input[name=overview]").val(data.overview);
+	target.find("input[name=subject]").val(data.subject);
+	target.find("textarea[name=body]").val(data.body);
+	target.find("select[name=target]").val(data.target);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////
+/// Event Handlers
+////////////////////////////////////////////////////////////////////////////////////////////
+
+$(document).ready(function() {	
+	$(document).on("submit", "form[name=newsletter_write_form]", function(event) {
+		if(checkNewsletter($("form[name=newsletter_write_form]")))
+			requestNewsletterWrite($(this).serialize());			
+		
+		return false;
+	});
+	
+	$(document).on("submit", "form[name=newsletter_modify_form]", function(event) {
+		if(checkNewsletter($("form[name=newsletter_modify_form]")))
+			requestNewsletterModify($(this).attr("data-id"), $(this).serialize());			
+		
+		return false;
+	});
+	
+	$(document).on("click", ".newsletter_item", function(event) {
+		requestNewsletterDetail($(this).attr("href"), $(this).parent().parent());
+		return false;
+	});		
+});
+
+
+////////////////////////////////////////////////////////////////////////////////////////////
+/// Request Data
+////////////////////////////////////////////////////////////////////////////////////////////
+
+function requestNewsletterList() {
+	$.ajax({
+	    type: "GET",
+	    url: "/newsletter/list.dive",	    
+	    dataType: "json",
+	    cache: false,
+	    success: function(resultMap) {
+	    	if(isSucceeded(resultMap))
+	    		setNewsletterListView(resultMap.data);
+	        else
+	        	showResultMessage(resultMap);
+	    },
+		error: function(xhr, status, msg) { showErrorMessage(xhr, status, msg); },
+		beforeSend: function() { showProgress(); },
+		complete: function() { hideProgress(); }
+	});		
+}
+
+function requestNewsletterDetail(id, target) {
+	$.ajax({
+	    type: "GET",
+	    url: "/newsletter/detail.dive?id=" + id,
+	    dataType: "json",
+	    cache: false,
+	    success: function(resultMap) {
+	    	if(isSucceeded(resultMap))
+	    		setNewsletterEditView(target, "modify", resultMap.data);
+	        else
+	        	showResultMessage(resultMap);
+	    },
+		error: function(xhr, status, msg) { showErrorMessage(xhr, status, msg); },
+		beforeSend: function() { showProgress(); },
+		complete: function() { hideProgress(); }
+	});	
+}
+
+function requestNewsletterWrite(request_data) {	
+	$.ajax({
+	    type: "POST",
+	    url: "/newsletter/write.dive",
+	    data: request_data,
+	    dataType: "json",
+	    cache: false,
+	    success: function(resultMap) {
+	    	if(isSucceeded(resultMap))
+	    		refreshNewsletterListView();
+	        else	        	
+	            showResultMessage(resultMap);
+	    },
+		error: function(xhr, status, msg) { showErrorMessage(xhr, status, msg); },
+		beforeSend: function() { showProgress(); },
+		complete: function() { hideProgress(); }
+	});
+}
+
+function requestNewsletterModify(id, request_data) {
+	$.ajax({
+  		type: "POST",
+  		url: "/newsletter/modify.dive?id=" + id,
+  		data: request_data,
+  		dataType: "json",
+  		cache: false,
+  		success: function(resultMap) {
+  			if(isSucceeded(resultMap))
+  				refreshNewsletterListView();
+  			else
+	            showResultMessage(resultMap);
+  		},
+  		error: function(xhr, status, msg) { showErrorMessage(xhr, status, msg); },
+  		beforeSend: function() { showProgress(); },
+  		complete: function() { hideProgress(); }
+	});
+}
+
+function requestNewsletterSend(id) {
+	$.ajax({
+	    type: "GET",
+	    url: "/newsletter/send.dive?id=" + id,
+	    dataType: "json",
+	    cache: false,
+	    success: function(resultMap) {
+	    	if(isSucceeded(resultMap))
+	    		refreshNewsletterListView();
+	        else
+	        	showResultMessage(resultMap);
+	    },
+		error: function(xhr, status, msg) { showErrorMessage(xhr, status, msg); },
+		beforeSend: function() { showProgress(); },
+		complete: function() { hideProgress(); }
+	});	
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////
+/// Check Validation
+////////////////////////////////////////////////////////////////////////////////////////////
+
+function checkNewsletter(form) {
+	var overview = form.find("input[name=overview]").val();
+	
+	if(overview.length == 0) {
+		showMessage("개요를 입력해주십시오."); 
+		return false;
+	}
+	
+	var title = form.find("input[name=title]").val();
+	
+	if(title.length == 0) {
+		showMessage("제목을 입력해주십시오."); 
+		return false;
+	}
+	
+	var description = form.find("textarea[name=body]").val();
+	
+	if(description.length == 0) {
+		showMessage("본문을 입력해주십시오."); 
+		return false;
+	}
+	
+	var language = form.find("select[name=target]").val();
+	
+	if(language == "") {
+		showMessage("대상을 선택해주십시오.");
+		return false;
+	}
+	
+	return true;
+}
